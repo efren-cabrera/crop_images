@@ -12,13 +12,15 @@ except ImportError:
     # Try backported to PY<37 `importlib_resources`.
     import importlib_resources as pkg_resources
 
-classes = pkg_resources.read_text(__package__, 'yolov3-classes.txt').splitlines()
+classes = pkg_resources.read_text(
+    __package__, 'yolov3-classes.txt').splitlines()
 classes_colors = np.random.uniform(0, 255, size=(len(classes), 3))
 
 yolov3_weights = pkg_resources.path(__package__, 'yolov3.weights')
 yolov3_cfg = pkg_resources.path(__package__, 'yolov3.cfg')
 with yolov3_weights as weights, yolov3_cfg as cfg:
     net = cv2.dnn.readNet(weights.as_posix(), cfg.as_posix())
+
 
 class YOLOCropper(AbstractCropper):
     def crop(self, image, relation: Tuple):
@@ -30,14 +32,11 @@ class YOLOCropper(AbstractCropper):
         yy = []
         z = []
         areas = []
-        
+
         for i in indices:
             i = i[0]
             box = boxes[i]
-            x = box[0]
-            y = box[1]
-            w = box[2]
-            h = box[3]
+            x, y, w, h = box
             center = [round((w/2) + x), round((h/2) + y)]
             centers.append(center)
             x_grid, y_grid, z_grid = self.get_values(center, width, height)
@@ -48,21 +47,21 @@ class YOLOCropper(AbstractCropper):
 
         z_sum = np.zeros_like(z[0])
         for area, z_grid in zip(areas, z):
-            #z_sum = z_sum + z_grid
-            z_sum = z_sum + (z_grid*area) # Add weight by area
+            z_sum = z_sum + (z_grid*area)
         z_sum = (z_sum - np.min(z_sum))/np.ptp(z_sum)
         cs = plt.contour(xx[0], yy[0], z_sum, levels=[.3])
         plt.contourf(xx[0], yy[0], z_sum, alpha=.6)
         cn = cs.collections[0].get_paths()
-        vs=[]
+        vs = []
         for i in range(len(cn)):
             vs.append(cn[i].vertices)
         vs = np.array(vs[0])
-        x_polygon = vs[:,0]
-        y_polygon = vs[:,1]
+        x_polygon = vs[:, 0]
+        y_polygon = vs[:, 1]
         center_polygon = [x_polygon.mean(), y_polygon.mean()]
 
-        crop_width, crop_height = self.find_crop_width_height(width, height, relation)
+        crop_width, crop_height = self.find_crop_width_height(
+            width, height, relation)
 
         x_0 = center_polygon[0] - (crop_width/2)
         x_f = center_polygon[0] + (crop_width/2)
@@ -77,7 +76,8 @@ class YOLOCropper(AbstractCropper):
 
     def get_output_layers(self, net):
         layer_names = net.getLayerNames()
-        output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+        output_layers = [layer_names[i[0] - 1]
+                         for i in net.getUnconnectedOutLayers()]
         return output_layers
 
     def get_values(self, center, widht, height):
@@ -87,9 +87,12 @@ class YOLOCropper(AbstractCropper):
         z = xx**2 + yy**2
         xx = xx + center[0]
         yy = yy + center[1]
-        xx = xx[height-center[1]:height*2-center[1], widht-center[0]:widht*2-center[0]]
-        yy = yy[height-center[1]:height*2-center[1], widht-center[0]:widht*2-center[0]]
-        z = z[height-center[1]:height*2-center[1], widht-center[0]:widht*2-center[0]]
+        xx = xx[height-center[1]:height*2-center[1],
+                widht-center[0]:widht*2-center[0]]
+        yy = yy[height-center[1]:height*2-center[1],
+                widht-center[0]:widht*2-center[0]]
+        z = z[height-center[1]:height*2-center[1],
+              widht-center[0]:widht*2-center[0]]
         z = (z - np.min(z))/np.ptp(z)
         return xx, yy, z
 
@@ -97,8 +100,8 @@ class YOLOCropper(AbstractCropper):
         height, width, _ = image.shape
         scale = 0.00392
 
-
-        blob = cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
+        blob = cv2.dnn.blobFromImage(
+            image, scale, (416, 416), (0, 0, 0), True, crop=False)
         net.setInput(blob)
 
         outs = net.forward(self.get_output_layers(net))
@@ -125,6 +128,6 @@ class YOLOCropper(AbstractCropper):
                     confidences.append(float(confidence))
                     boxes.append([x, y, w, h])
 
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, conf_threshold, nms_threshold)
+        indices = cv2.dnn.NMSBoxes(
+            boxes, confidences, conf_threshold, nms_threshold)
         return boxes, indices, confidences, class_ids
-    
