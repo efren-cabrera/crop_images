@@ -1,14 +1,12 @@
 from typing import List, Tuple
-
-from PIL import Image
-from PIL.Image import Image as ImageType
+import cv2
 
 from .AbstractCropper import AbstractCropper
 from .CropperType import CropperType
 from .CenteredCropper import CenteredCropper
 
 
-def centered_crop_images(images_paths: List[str], relation: Tuple = (4, 6)) -> List[ImageType]:
+def centered_crop_images(images_paths: List[str], relation: Tuple = (4, 6)):
     return crop_images(images_paths, relation, cropper_factory(CropperType.CENTERED_CROPPER))
 
 
@@ -19,5 +17,5 @@ def cropper_factory(cropper_type: CropperType) -> AbstractCropper:
         raise NotImplementedError("Not a valid cropper")
 
 
-def crop_images(images_paths: List[str], relation: Tuple = (4, 6), cropper: AbstractCropper = CenteredCropper()) -> List[ImageType]:
-    return [cropper.crop(Image.open(file), relation) for file in images_paths]
+def crop_images(images_paths: List[str], relation: Tuple = (4, 6), cropper: AbstractCropper = CenteredCropper()):
+    return [cropper.crop(cv2.imread(file), relation) for file in images_paths]

@@ -1,9 +1,9 @@
 from typing import List
-from PIL.Image import Image
+import cv2
 import os
 
 
-def save_images_as_original_tree(original_paths: List[str], images: List[Image], destionation_folder) -> None:
+def save_images_as_original_tree(original_paths: List[str], images, destionation_folder) -> None:
     for original_path, image in zip(original_paths, images):
         _, original_path_route = os.path.splitdrive(original_path)
         if original_path_route.startswith("/"):
@@ -14,4 +14,4 @@ def save_images_as_original_tree(original_paths: List[str], images: List[Image],
         final_path, _ = os.path.split(final_file_route)
         if not os.path.exists(final_path):
             os.makedirs(final_path)
-        image.save(final_file_route, 'jpeg')
+        cv2.imwrite(final_file_route, image)
